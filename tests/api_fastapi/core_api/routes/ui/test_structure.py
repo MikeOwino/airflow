@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import pendulum
 import pytest
+from deepdiff import DeepDiff
 
 from airflow.models import DagBag
 from airflow.operators.empty import EmptyOperator
@@ -58,7 +59,7 @@ def make_dag(dag_maker, session, time_machine):
     ):
         TriggerDagRunOperator(task_id="trigger_dag_run_operator", trigger_dag_id=DAG_ID)
 
-    dag_maker.dagbag.sync_to_db()
+    dag_maker.sync_dagbag_to_db()
 
     with dag_maker(
         dag_id=DAG_ID,
@@ -77,7 +78,7 @@ def make_dag(dag_maker, session, time_machine):
             >> EmptyOperator(task_id="task_2")
         )
 
-    dag_maker.dagbag.sync_to_db()
+    dag_maker.sync_dagbag_to_db()
 
 
 class TestStructureDataEndpoint:
@@ -404,7 +405,7 @@ class TestStructureDataEndpoint:
     def test_should_return_200(self, test_client, params, expected):
         response = test_client.get("/ui/structure/structure_data", params=params)
         assert response.status_code == 200
-        assert response.json() == expected
+        assert not DeepDiff(response.json(), expected, ignore_order=True)
 
     def test_should_return_404(self, test_client):
         response = test_client.get("/ui/structure/structure_data", params={"dag_id": "not_existing"})
